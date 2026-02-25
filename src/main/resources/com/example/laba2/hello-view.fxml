@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+
+
+<BorderPane prefHeight="200.0" prefWidth="200.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.laba2.GameController">
+   <center>
+      <Pane fx:id="gamePane" prefHeight="800.0" prefWidth="600.0" BorderPane.alignment="CENTER">
+         <children>
+            <Circle fx:id="ball" fill="darkgreen" onMouseClicked="#handleMouseClick" radius="30" stroke="BLACK" strokeType="INSIDE" />
+         </children>
+      </Pane>
+   </center>
+</BorderPane>
