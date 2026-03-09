@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
-
 
 <BorderPane prefHeight="200.0" prefWidth="200.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.laba2.GameController">
    <center>
@@ -12,4 +12,10 @@
          </children>
       </Pane>
    </center>
+   <bottom>
+      <Button fx:id="BtStartGame" mnemonicParsing="false" onAction="#StartGame" text="Старт" BorderPane.alignment="CENTER" />
+   </bottom>
+   <top>
+      <Label fx:id="scoreLabel" text="Счёт: 0" BorderPane.alignment="CENTER" />
+   </top>
 </BorderPane>
