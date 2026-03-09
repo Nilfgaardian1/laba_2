@@ -10,6 +10,7 @@ import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Circle;
+import model.GameModel;
 
 import java.util.Random;
 import java.util.Timer;
@@ -21,39 +22,53 @@ public class GameController {
     public Label scoreLabel;
     public Button BtStartGame;
 
-    private boolean isStarted = false;
 
     Timer timer;
-    Random random = new Random();
-    private IntegerProperty score = new SimpleIntegerProperty();
+    private GameModel model;
+    private boolean isStarted = false;
 
     @FXML
     private void initialize() {
 
-        scoreLabel.textProperty().bind(
-                javafx.beans.binding.Bindings.concat("Счет: ", score)
+        model = new GameModel(ball.getRadius());
+
+        scoreLabel.textProperty().bind( // привязка счета к текстовому полю
+                javafx.beans.binding.Bindings.concat("Счет: ", model.scoreProperty())
         );
 
-        // При изменении размера центрируем шарик
+        // установление размера поля для модели (для проверки столкновения)
+
         gamePane.widthProperty().addListener((obs, oldVal, newVal) -> {
-            // Центрируем ТОЛЬКО если игра не запущена
-            if (!isStarted) {
-                ball.setCenterX(gamePane.getWidth() / 2);
+
+
+            model.setPaneSize(gamePane.getWidth(), gamePane.getHeight());
+            if (!isStarted)
+            {
+                model.centerBall();
+                ball.setCenterX(model.getBallX());
+                ball.setCenterY(model.getBallY());
             }
         });
 
         gamePane.heightProperty().addListener((obs, oldVal, newVal) -> {
-            if (!isStarted) {
-                ball.setCenterY(gamePane.getHeight() / 2);
+
+            model.setPaneSize(gamePane.getWidth(), gamePane.getHeight());
+            if (!isStarted)
+            {
+                model.centerBall();
+                ball.setCenterX(model.getBallX());
+                ball.setCenterY(model.getBallY());
             }
         });
 
         // Начальная позиция
-        Platform.runLater(() -> {
-            if (gamePane.getWidth() > 0 && gamePane.getHeight() > 0) {
-                ball.setCenterX(gamePane.getWidth() / 2);
-                ball.setCenterY(gamePane.getHeight() / 2);
-            }
+        Platform.runLater(() ->
+        {
+            model.setPaneSize(gamePane.getWidth(), gamePane.getHeight());
+            model.centerBall();
+            ball.setCenterX(model.getBallX());
+            ball.setCenterY(model.getBallY());
+
         });
     }
 
@@ -63,49 +78,38 @@ public class GameController {
     {
         if(!isStarted){return;} // если игры нет, то выходим из метода
 
-        // Проверка попадания
-        double dx = event.getX() - ball.getCenterX();
-        double dy = event.getY() - ball.getCenterY();
-        double distance = Math.sqrt(dx * dx + dy * dy);
-
-//        if (distance <= ball.getRadius()) {
-//            // При попадании Перемещаем шарик
-//            moveBallToRandomPosition();
-//        }
-
-        if(distance <= ball.getRadius()){
-            score.set(score.get() + 1);
+        if(model.checkHit(event.getX(),event.getY()))
+        {
+            model.increaseScore();
         }
 
-    }
+        // то что мы сократили написав класс
+//        double dx = event.getX() - ball.getCenterX();// Проверка попадания
+//        double dy = event.getY() - ball.getCenterY();
+//        double distance = Math.sqrt(dx * dx + dy * dy);
+//
+//        if(distance <= ball.getRadius()) //увеличиваем счетчик при нажатии на мяч
+//        {
+//            score.set(score.get() + 1);
+//        }
 
-    //перемещение шарика в случайную позицию
-    private void moveBallToRandomPosition()
-    {
-        //if(gamePane.getWidth() <= 0 || gamePane.getHeight()<=0) return; //если размеры окна равны нулю или меньше возвращается функция
-
-        double newX = ball.getRadius() +
-                random.nextDouble() * (gamePane.getWidth() - 2 * ball.getRadius());
-        double newY = ball.getRadius() +
-                random.nextDouble() * (gamePane.getHeight() - 2 * ball.getRadius());
-
-        ball.setCenterX(newX);
-        ball.setCenterY(newY);
     }
 
     @FXML
     public void StartGame(ActionEvent actionEvent)
     {
-        if(isStarted) // проверяем запущена ли игра и
-            // если она уже была начата тогда мы останавливаем ее
+        if(isStarted)//стоп игры
         {
             timer.cancel();
             timer = null;
             isStarted = false;
             BtStartGame.setText("Старт");
 
-            ball.setCenterX(gamePane.getWidth() / 2);
-            ball.setCenterY(gamePane.getHeight() / 2);
+            model.setRunning(false);
+
+            model.centerBall();
+            ball.setCenterX(model.getBallX());
+            ball.setCenterY(model.getBallY());
         }
         else //Запуск игры
         {
@@ -113,20 +117,20 @@ public class GameController {
             timer.schedule(new TimerTask() //запускает таймер
             {
                 @Override
-
                 public void run() // метод запускается в зависимости от времени
                 {
                     Platform.runLater(()->{
-                        moveBallToRandomPosition();
+                        model.moveBallRandomly();
+                        ball.setCenterX(model.getBallX());
+                        ball.setCenterY(model.getBallY());
                     });
                 }
             }, 0 ,500);
 
             isStarted = true; //флаг, что игра работает
+            model.setRunning(true);
             BtStartGame.setText(("Стоп"));
         }
-
-
 
     }
 }
