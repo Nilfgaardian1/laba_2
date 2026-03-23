@@ -1,136 +1,165 @@
 package com.example.laba2;
 
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.shape.Circle;
+import javafx.scene.shape.Rectangle;
 import model.GameModel;
 
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+// Убираем импорт java.awt.event.ActionEvent
+// Импортируем правильный ActionEvent из javafx
+import javafx.event.ActionEvent;
 
 public class GameController {
-    public Circle ball;
-    public Pane gamePane;
-    public Label scoreLabel;
-    public Button BtStartGame;
+    @FXML public Circle ball;
+    @FXML public Pane gamePane;
+    @FXML public Label scoreLabel;
+    @FXML public Button BtStartGame;
+    @FXML public Rectangle mob;
 
-
-    Timer timer;
     private GameModel model;
-    private boolean isStarted = false;
+    private AnimationTimer gameStatus;
+    private double lastMouseX = 0;
+    private double lastMouseY = 0;
 
     @FXML
     private void initialize() {
-
         model = new GameModel(ball.getRadius());
 
-        scoreLabel.textProperty().bind( // привязка счета к текстовому полю
-                javafx.beans.binding.Bindings.concat("Счет: ", model.scoreProperty())
+        // Привязка свойств модели к UI
+        scoreLabel.textProperty().bind(
+                javafx.beans.binding.Bindings.concat("Счёт: ", model.scoreProperty())
         );
 
-        // установление размера поля для модели (для проверки столкновения)
+        // Привязка позиции шарика к модели
+        ball.centerXProperty().bind(model.ballXProperty());
+        ball.centerYProperty().bind(model.ballYProperty());
 
+        // Установка размера поля для модели
         gamePane.widthProperty().addListener((obs, oldVal, newVal) -> {
-
-
             model.setPaneSize(gamePane.getWidth(), gamePane.getHeight());
-            if (!isStarted)
-            {
+            if (!model.isGameActive()) {
                 model.centerBall();
-                ball.setCenterX(model.getBallX());
-                ball.setCenterY(model.getBallY());
+                model.respawnMob();
+                updateMobPosition();
             }
         });
 
         gamePane.heightProperty().addListener((obs, oldVal, newVal) -> {
-
             model.setPaneSize(gamePane.getWidth(), gamePane.getHeight());
-            if (!isStarted)
-            {
+            if (!model.isGameActive()) {
                 model.centerBall();
-                ball.setCenterX(model.getBallX());
-                ball.setCenterY(model.getBallY());
+                model.respawnMob();
+                updateMobPosition();
             }
         });
 
-        // Начальная позиция
-        Platform.runLater(() ->
-        {
+        // Обработка движения мыши
+        gamePane.setOnMouseMoved(this::handleMouseMove);
+
+        // Обработка двойного клика для паузы
+        gamePane.setOnMouseClicked(this::handleDoubleClick);
+
+        // Инициализация позиций
+        Platform.runLater(() -> {
             model.setPaneSize(gamePane.getWidth(), gamePane.getHeight());
             model.centerBall();
-            ball.setCenterX(model.getBallX());
-            ball.setCenterY(model.getBallY());
-
+            model.respawnMob();
+            updateMobPosition();
         });
     }
 
-    @FXML
-    //обработка кликов мыши
-    public void handleMouseClick(MouseEvent event)
-    {
-        if(!isStarted){return;} // если игры нет, то выходим из метода
-
-        if(model.checkHit(event.getX(),event.getY()))
-        {
-            model.increaseScore();
+    private void handleMouseMove(MouseEvent event) {
+        if (model.isGameActive() && !model.isPaused()) {
+            lastMouseX = event.getX();
+            lastMouseY = event.getY();
         }
+    }
 
-        // то что мы сократили написав класс
-//        double dx = event.getX() - ball.getCenterX();// Проверка попадания
-//        double dy = event.getY() - ball.getCenterY();
-//        double distance = Math.sqrt(dx * dx + dy * dy);
-//
-//        if(distance <= ball.getRadius()) //увеличиваем счетчик при нажатии на мяч
-//        {
-//            score.set(score.get() + 1);
-//        }
+    private void handleDoubleClick(MouseEvent event) {
+        // Проверяем, что клик был по пустой области (не по шарику)
+        double dx = event.getX() - ball.getCenterX();
+        double dy = event.getY() - ball.getCenterY();
+        double distance = Math.sqrt(dx * dx + dy * dy);
 
+        if (distance > ball.getRadius() && event.getClickCount() == 2 && model.isGameActive()) {
+            // Двойной клик по пустой области
+            model.setPaused(!model.isPaused());
+            if (model.isPaused()) {
+                showPauseLabel();
+            } else {
+                hidePauseLabel();
+            }
+        }
+    }
+
+    //    метод для паузы
+    private void showPauseLabel() {
+        Label pauseLabel = new Label("ПАУЗА");
+        pauseLabel.setId("pauseLabel");
+        pauseLabel.setStyle("-fx-font-size: 48px; -fx-text-fill: red; -fx-font-weight: bold;");
+        pauseLabel.setLayoutX(gamePane.getWidth() / 2 - 100);
+        pauseLabel.setLayoutY(gamePane.getHeight() / 2 - 30);
+        gamePane.getChildren().add(pauseLabel);
+    }
+
+    //метод скрытия лейбл
+    private void hidePauseLabel() {
+        gamePane.getChildren().removeIf(node -> node.getId() != null && node.getId().equals("pauseLabel"));
+    }
+
+    private void updateMobPosition() {
+        mob.setX(model.getMobX());
+        mob.setY(model.getMobY());
     }
 
     @FXML
-    public void StartGame(ActionEvent actionEvent)
-    {
-        if(isStarted)//стоп игры
-        {
-            timer.cancel();
-            timer = null;
-            isStarted = false;
+    public void StartGame(ActionEvent actionEvent) {
+        if (model.isGameActive()) {
+            // Остановка игры
+            if (gameStatus != null) {
+                gameStatus.stop();
+                gameStatus = null;
+            }
+            model.setGameActive(false);
+            model.setPaused(false);
+            hidePauseLabel();
             BtStartGame.setText("Старт");
+            model.resetScore();
 
-            model.setRunning(false);
-
+            // Возвращаем шарик в центр
             model.centerBall();
-            ball.setCenterX(model.getBallX());
-            ball.setCenterY(model.getBallY());
-        }
-        else //Запуск игры
-        {
-            timer = new Timer();
-            timer.schedule(new TimerTask() //запускает таймер
-            {
+            model.respawnMob();
+            updateMobPosition();
+        } else {
+            // Запуск игры
+            model.setGameActive(true);
+            model.setPaused(false);
+            BtStartGame.setText("Стоп");
+
+            // Запуск игрового цикла
+            gameStatus = new AnimationTimer() {
                 @Override
-                public void run() // метод запускается в зависимости от времени
-                {
-                    Platform.runLater(()->{
-                        model.moveBallRandomly();
-                        ball.setCenterX(model.getBallX());
-                        ball.setCenterY(model.getBallY());
-                    });
+                public void handle(long now) {
+                    if (model.isGameActive() && !model.isPaused()) {
+                        // Двигаем шарик от мыши
+                        model.moveBallAwayFromMouse(lastMouseX, lastMouseY);
+
+                        // Проверяем столкновение с мобом
+                        if (model.checkCollisionMob()) {
+                            model.increaseScore();
+                            model.respawnMob();
+                            updateMobPosition();
+                        }
+                    }
                 }
-            }, 0 ,500);
-
-            isStarted = true; //флаг, что игра работает
-            model.setRunning(true);
-            BtStartGame.setText(("Стоп"));
+            };
+            gameStatus.start();
         }
-
     }
 }
