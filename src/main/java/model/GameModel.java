@@ -1,91 +1,147 @@
 package model;
 
-import javafx.beans.property.IntegerProperty;
-import javafx.beans.property.SimpleIntegerProperty;
-
-import java.util.Random;
+import javafx.beans.property.*;
 
 public class GameModel
 {
+    private DoubleProperty ballX = new SimpleDoubleProperty();
+    private DoubleProperty ballY = new SimpleDoubleProperty();
     private IntegerProperty score = new SimpleIntegerProperty(0);
+    private BooleanProperty gameActive = new SimpleBooleanProperty(false);
 
-    private boolean isRunning = false;
-    private double ballX, ballY;
     private double ballRadius;
-    private double panelWidth, panelHeight;
-
-    private Random random = new Random();
+    private double panelWidth;
+    private double panelHeight;
+    private double mobX;
+    private double mobY;
+    private double mobWidth = 48;
+    private double mobHeight = 47;
+    private boolean isPaused = false;
 
     public GameModel(double ballRadius)
     {
         this.ballRadius = ballRadius;
     }
 
-
-    public int getScore()
+    public DoubleProperty ballXProperty()
     {
-        return score.get();
+        return ballX;
+    }
+
+    public DoubleProperty ballYProperty()
+    {
+        return ballY;
     }
 
     public IntegerProperty scoreProperty()
     {
         return score;
     }
-
-    public void increaseScore() // увелечения очков
+    public void increaseScore()
     {
-        score.set(score.getValue()+1);
+        score.set(score.get() + 1);
     }
 
-    public boolean isRunning() {  // Для boolean принято называть is...
-        return isRunning;
-    }
-
-    public void setRunning(boolean running) {
-        isRunning = running;
-    }
-
-    public double getBallX()
+    public boolean isGameActive()
     {
-        return ballX;
+        return gameActive.get();
     }
 
-    public double getBallY()
+    public void setGameActive(boolean active)
     {
-        return ballY;
+        gameActive.set(active);
     }
 
-    public void SetBallPosition(double x,double y) //установление позиции мячу в начале новой игры
+    public double getMobX()
     {
-          this.ballX=x;
-          this.ballY=y;
+        return mobX;
     }
 
-    public void setPaneSize(double w, double h) // размер панели
+    public double getMobY()
     {
-        panelWidth =w;
-        panelHeight =h;
+        return mobY;
     }
 
-    public void moveBallRandomly() // перемещение шарика по полю случайным образом
+    public boolean isPaused()
     {
-        ballX = ballRadius + random.nextDouble() * (panelWidth - 2 * ballRadius);
-        ballY = ballRadius + random.nextDouble() * (panelHeight - 2 * ballRadius);
+        return isPaused;
     }
-
-    public void centerBall() // центрирование положения
+    public void setPaused(boolean paused)
     {
-        ballY = panelHeight / 2;
-        ballX = panelWidth / 2;
+        isPaused = paused;
     }
 
-    public boolean checkHit(double clickX ,double clickY) // проверяем попал ли пользователь
+    public void setPaneSize(double w, double h)
     {
-        double dx = clickX - ballX;// Проверка попадания
-        double dy = clickY - ballY;
-        return Math.sqrt(dx * dx + dy * dy) <=ballRadius;
+        panelWidth = w;
+        panelHeight = h;
     }
 
+    public void centerBall() {
+        if (panelWidth > 0 && panelHeight > 0) {
+            ballX.set(panelWidth / 2);
+            ballY.set(panelHeight / 2);
+        }
+    }
 
+    // Метод для перемещения шарика от мыши
+    public void moveBallAwayFromMouse(double mouseX, double mouseY) {
+        if (!gameActive.get() || isPaused) return;
 
+        // Вектор от мыши к шарику
+        double dx = ballX.get() - mouseX;
+        double dy = ballY.get() - mouseY;
+
+        // Нормализуем вектор и двигаем шарик в противоположную сторону
+        double distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > 0.1) {
+            double moveSpeed = 5; // Скорость движения шарика
+            double moveX = (dx / distance) * moveSpeed;
+            double moveY = (dy / distance) * moveSpeed;
+
+            double newX = ballX.get() + moveX;
+            double newY = ballY.get() + moveY;
+
+            // Проверка границ
+            newX = Math.min(Math.max(newX, ballRadius), panelWidth - ballRadius);
+            newY = Math.min(Math.max(newY, ballRadius), panelHeight - ballRadius);
+
+            ballX.set(newX);
+            ballY.set(newY);
+        }
+    }
+
+    // Проверка столкновения с мобом
+    public boolean checkCollisionMob() {
+        double ballCenterX = ballX.get();
+        double ballCenterY = ballY.get();
+
+        // Находим ближайшую точку прямоугольника к центру круга
+        double closestX = Math.max(mobX, Math.min(ballCenterX, mobX + mobWidth));
+        double closestY = Math.max(mobY, Math.min(ballCenterY, mobY + mobHeight));
+
+        double dx = ballCenterX - closestX;
+        double dy = ballCenterY - closestY;
+
+        return Math.sqrt(dx * dx + dy * dy) <= ballRadius;
+    }
+
+    // Спавн моба в случайном месте
+    public void respawnMob() {
+        double maxX = panelWidth - mobWidth;
+        double maxY = panelHeight - mobHeight;
+
+        if (maxX > 0 && maxY > 0) {
+            mobX = Math.random() * maxX;
+            mobY = Math.random() * maxY;
+        } else {
+            mobX = 0;
+            mobY = 0;
+        }
+    }
+
+    public void resetScore()
+    {
+        score.set(0);
+    }
 }

@@ -4,11 +4,12 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 
-<BorderPane prefHeight="200.0" prefWidth="200.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.laba2.GameController">
+<BorderPane  xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.laba2.GameController">
    <center>
-      <Pane fx:id="gamePane" prefHeight="800.0" prefWidth="600.0" BorderPane.alignment="CENTER">
+      <Pane fx:id="gamePane" prefWidth="600" prefHeight="400" style="-fx-background-color: lightgray;" BorderPane.alignment="CENTER">
          <children>
-            <Circle fx:id="ball" fill="darkgreen" onMouseClicked="#handleMouseClick" radius="30" stroke="BLACK" strokeType="INSIDE" />
+            <Circle fx:id="ball" radius="20" fill="RED" stroke="BLACK" strokeType="INSIDE" />
+            <Rectangle fx:id="mob" arcHeight="10.0" arcWidth="10.0" fill="DODGERBLUE" height="47.0" stroke="BLACK" strokeType="INSIDE" width="48.0" />
          </children>
       </Pane>
    </center>
